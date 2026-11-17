@@ -1,7 +1,6 @@
-VERSION 2 - GRPO with the same model for rollouts and training, gpt-4o-mini as reward model only
+GRPO with the same model for rollouts and training, gpt-4o-mini as reward model only
 =================================================================================================
 
-What is new compared with version_1
 -----------------------------------
 GRPO run (online, on-policy):
   * rollouts  : Qwen3-8B itself generates every rollout with vLLM in bf16 using the CURRENT LoRA weights of the
@@ -11,16 +10,16 @@ GRPO run (online, on-policy):
                 vLLM after every step.
   * reward    : gpt-4o-mini only scores the answers (claim support, key-point coverage, notes support). Citation
                 F1, format and gold-paper recall are computed in code.
-  * reused    : version_1 data, benchmark, retrieval index, DPO adapter, sampled training answers and all test
+  * reused    : data, benchmark, retrieval index, DPO adapter, sampled training answers and all test
                 scores. Nothing in version_1 is changed.
 
 Recipe choices made to give GRPO the best chance of beating DPO / RAG (each one is a flag):
   1. Warm start from DPO (--init_adapter .../sft/qa_dpo). GRPO continues from the best version_1 policy instead of
      the base model (as SFT -> RL in DeepSeek-R1 / Tulu-3 style pipelines).
   2. Turn-level credit (--reward_mode process_turn, --lam 0.5). Each Searcher turn is credited for the gold papers it
-     found, each Reader turn for supported notes, the Synthesizer for supported citations. In version_1 this mode
+     found, each Reader turn for supported notes, the Synthesizer for supported citations. In this mode
      raised training gold-recall faster than the outcome reward (0.176 -> 0.212 in 30 steps).
-  3. Recall bonus (--recall_bonus 0.2). Training reward += 0.2 x share of gold papers retrieved. Version_1 showed
+  3. Recall bonus (--recall_bonus 0.2). Training reward += 0.2 x share of gold papers retrieved. it showed
      that coverage is almost linear in gold-paper recall (r = 0.97) and that DPO did not change retrieval, so
      this targets the main bottleneck. The TEST metric is unchanged (same formula as version_1).
   4. Curriculum (--prior_scores version_1 pipeline3_train_n4). Questions whose 4 earlier samples disagreed are drawn
@@ -81,15 +80,15 @@ Time and cost (estimates)
 
 Where to look
 -------------
-  job log            version_2/logs/<jobid>.OU   (one line per step: train reward, coverage, gold recall, dev score)
-  training curve     version_2/outputs/df_updated_with_retrieval_upd_n1000/qwen3_8b/grpo/qa_pipeline3_process_turn_dpo_init/
+  job log            logs/<jobid>.OU   (one line per step: train reward, coverage, gold recall, dev score)
+  training curve     outputs/df_updated_with_retrieval_upd_n1000/qwen3_8b/grpo/qa_pipeline3_process_turn_dpo_init/
                        train_log.jsonl      one JSON line per step (step 0 = the DPO starting point on dev)
                        trainer_state.json   best_step, best_dev, finished
                        ckpt/best            adapter evaluated on the test set
-  test answers       version_2/outputs/.../qwen3_8b/gens/qa/pipeline3_grpo_dpo_init.jsonl
-  test scores        version_2/outputs/.../qwen3_8b/scores/qa/pipeline3_grpo_dpo_init.eval.jsonl (+ .summary.json)
-  final tables       version_2/final_table.tex  (main results, paired comparisons, headroom subset, GRPO runs)
-                     version_2/final_table.txt  (same numbers as plain text)
+  test answers       outputs/.../qwen3_8b/gens/qa/pipeline3_grpo_dpo_init.jsonl
+  test scores        outputs/.../qwen3_8b/scores/qa/pipeline3_grpo_dpo_init.eval.jsonl (+ .summary.json)
+  final tables       final_table.tex  (main results, paired comparisons, headroom subset, GRPO runs)
+                     final_table.txt  (same numbers as plain text)
   In the paper: \usepackage{booktabs,graphicx} (already loaded) and \input{final_table.tex}.
 
 Rows in final_table.tex
